@@ -193,25 +193,10 @@ class GedcomImporter:
                     )
                 )
 
-        # Relationships
-        # Parent-child
-        for parent_pointer in individual.get_parent_family_ids():
-            # This will be handled in family relationships
-            pass
-
-        # Child relationships
-        child_elements = individual.get_child_elements()
-        for child_el in child_elements:
-            tag = child_el.get_tag()
-
-            if tag == "FAMC":  # Family as child
-                # Extract parent relationships from family
-                family_pointer = child_el.get_value()
-                # Would need to parse family records for parent relationships
-
-            elif tag == "FAMS":  # Family as spouse
-                # Extract spouse relationships
-                family_pointer = child_el.get_value()
+        # Relationships - Skip for now in MVP
+        # GEDCOM family relationships are complex and require parsing family records
+        # For MVP, we just extract individual-level data
+        # TODO: Implement family relationship parsing in future version
 
         return claims
 
