@@ -17,6 +17,26 @@ from app.worker.tasks import run_validation as run_validation_task
 router = APIRouter()
 
 
+@router.delete("/{job_id}")
+async def delete_job(
+    job_id: UUID,
+    session: Session = Depends(get_session),
+) -> dict:
+    """
+    Delete a job run.
+
+    Useful for cleaning up failed jobs.
+    """
+    run = session.get(Run, job_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    session.delete(run)
+    session.commit()
+
+    return {"message": "Job deleted", "run_id": str(job_id)}
+
+
 @router.get("/{job_id}")
 async def get_job_status(
     job_id: UUID,

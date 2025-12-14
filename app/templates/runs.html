@@ -1,7 +1,4 @@
-{% extends "base.html" %}
-
-{% block title %}Job Runs - LineageForge{% endblock %}
-
+{% extends "base.html" %} {% block title %}Job Runs - LineageForge{% endblock %}
 {% block content %}
 <div class="runs-page">
     <h1>Job Run History</h1>
@@ -16,6 +13,7 @@
                 <th>Started</th>
                 <th>Completed</th>
                 <th>Duration</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -23,16 +21,35 @@
             <tr>
                 <td><code>{{ run.run_id }}</code></td>
                 <td>{{ run.job_type.value }}</td>
-                <td><span class="status-{{ run.status.value }}">{{ run.status.value }}</span></td>
-                <td>{{ run.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                <td>{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '-' }}</td>
-                <td>{{ run.completed_at.strftime('%Y-%m-%d %H:%M:%S') if run.completed_at else '-' }}</td>
                 <td>
-                    {% if run.started_at and run.completed_at %}
-                        {{ ((run.completed_at - run.started_at).total_seconds())|int }}s
-                    {% else %}
-                        -
-                    {% endif %}
+                    <span class="status-{{ run.status.value }}"
+                        >{{ run.status.value }}</span
+                    >
+                </td>
+                <td>{{ run.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                    {{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if
+                    run.started_at else '-' }}
+                </td>
+                <td>
+                    {{ run.completed_at.strftime('%Y-%m-%d %H:%M:%S') if
+                    run.completed_at else '-' }}
+                </td>
+                <td>
+                    {% if run.started_at and run.completed_at %} {{
+                    ((run.completed_at - run.started_at).total_seconds())|int
+                    }}s {% else %} - {% endif %}
+                </td>
+                <td>
+                    <button
+                        hx-delete="/api/jobs/{{ run.run_id }}"
+                        hx-confirm="Delete this job?"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML swap:0s"
+                        class="btn-delete"
+                    >
+                        Delete
+                    </button>
                 </td>
             </tr>
             {% if run.result_summary %}
@@ -42,15 +59,13 @@
                     <pre>{{ run.result_summary }}</pre>
                 </td>
             </tr>
-            {% endif %}
-            {% if run.error_message %}
+            {% endif %} {% if run.error_message %}
             <tr class="run-details error">
                 <td colspan="7">
                     <strong>Error:</strong> {{ run.error_message }}
                 </td>
             </tr>
-            {% endif %}
-            {% endfor %}
+            {% endif %} {% endfor %}
         </tbody>
     </table>
 </div>
