@@ -1,4 +1,4 @@
-# LineageForge Dockerfile
+# LineageForge Worker Dockerfile
 FROM python:3.11-slim
 
 # Install system dependencies
@@ -6,11 +6,6 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     gcc \
     libpq-dev \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libgdk-pixbuf-2.0-0 \
-    libffi-dev \
-    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -25,12 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create necessary directories
+# Worker doesn't need reports directory but create it anyway
 RUN mkdir -p /app/data /app/reports
 
-# Expose port
-EXPOSE 8000
-
-# Default command (web service)
-# Use shell form to allow environment variable expansion
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Run worker
+CMD ["python", "-m", "app.worker.worker"]
