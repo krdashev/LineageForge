@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Tree View - LineageForge{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<style>
+    #cy {
+        width: 100%;
+        height: 700px;
+        border: 1px solid #ddd;
+        background: #fafafa;
+    }
+    .graph-controls {
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tree-view">
+    <h1>Lineage Graph</h1>
+
+    <div class="graph-controls">
+        <label>
+            Root Person ID:
+            <input type="text" id="person-id-input" value="{{ root_person_id or '' }}" placeholder="Enter person UUID">
+        </label>
+        <label>
+            Depth:
+            <select id="depth-select">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+            </select>
+        </label>
+        <button onclick="loadGraph()">Load Graph</button>
+    </div>
+
+    <div id="cy"></div>
+
+    <div id="node-detail" class="detail-panel" style="display:none;">
+        <h3>Node Details</h3>
+        <div id="detail-content"></div>
+    </div>
+</div>
+
+<script>
+let cy;
+
+function initCytoscape() {
+    cy = cytoscape({
+        container: document.getElementById('cy'),
+        style: [
+            {
+                selector: 'node',
+                style: {
+                    'label': 'data(label)',
+                    'text-valign': 'center',
+                    'text-halign': 'center',
+                    'background-color': '#4a90e2',
+                    'color': '#fff',
+                    'width': 60,
+                    'height': 60,
+                    'font-size': '10px',
+                    'text-wrap': 'wrap',
+                    'text-max-width': '80px'
+                }
+            },
+            {
+                selector: 'node[is_root = true]',
+                style: {
+                    'background-color': '#e74c3c',
+                    'width': 80,
+                    'height': 80,
+                    'font-size': '12px',
+                    'font-weight': 'bold'
+                }
+            },
+            {
+                selector: 'edge',
+                style: {
+                    'width': 2,
+                    'line-color': '#95a5a6',
+                    'target-arrow-color': '#95a5a6',
+                    'target-arrow-shape': 'triangle',
+                    'curve-style': 'bezier',
+                    'label': 'data(relationship)',
+                    'font-size': '8px',
+                    'text-rotation': 'autorotate'
+                }
+            },
+            {
+                selector: 'edge[confidence < 0.5]',
+                style: {
+                    'line-style': 'dashed',
+                    'line-color': '#bdc3c7'
+                }
+            }
+        ],
+        layout: {
+            name: 'breadthfirst',
+            directed: true,
+            spacingFactor: 1.5
+        }
+    });
+
+    // Click handler
+    cy.on('tap', 'node', function(evt) {
+        const node = evt.target;
+        const nodeId = node.id();
+        showNodeDetail(nodeId);
+    });
+}
+
+async function loadGraph() {
+    const personId = document.getElementById('person-id-input').value.trim();
+    const depth = document.getElementById('depth-select').value;
+
+    if (!personId) {
+        alert('Please enter a person ID');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/graph/lineage/${personId}?depth=${depth}`);
+        const data = await response.json();
+
+        if (!cy) {
+            initCytoscape();
+        }
+
+        // Clear existing graph
+        cy.elements().remove();
+
+        // Add nodes
+        data.nodes.forEach(node => {
+            cy.add({
+                group: 'nodes',
+                data: {
+                    id: node.id,
+                    label: node.label + (node.birth_year ? `\n(${node.birth_year})` : ''),
+                    is_root: node.is_root
+                }
+            });
+        });
+
+        // Add edges
+        data.edges.forEach(edge => {
+            cy.add({
+                group: 'edges',
+                data: {
+                    source: edge.source,
+                    target: edge.target,
+                    relationship: edge.relationship,
+                    confidence: edge.confidence
+                }
+            });
+        });
+
+        // Layout
+        cy.layout({
+            name: 'breadthfirst',
+            directed: true,
+            spacingFactor: 1.5
+        }).run();
+
+    } catch (error) {
+        alert('Failed to load graph: ' + error.message);
+    }
+}
+
+async function showNodeDetail(nodeId) {
+    try {
+        const response = await fetch(`/api/person/${nodeId}`);
+        const person = await response.json();
+
+        const claimsResponse = await fetch(`/api/person/${nodeId}/claims`);
+        const claimsData = await claimsResponse.json();
+
+        const detailContent = document.getElementById('detail-content');
+        detailContent.innerHTML = `
+            <p><strong>ID:</strong> ${person.person_id}</p>
+            <p><strong>Name:</strong> ${person.canonical_name || 'Unknown'}</p>
+            <p><strong>Birth:</strong> ${person.canonical_birth_year || '-'}</p>
+            <p><strong>Death:</strong> ${person.canonical_death_year || '-'}</p>
+            <p><strong>Total Claims:</strong> ${claimsData.total_claims}</p>
+            ${claimsData.conflicts.length > 0 ? `<p class="warning"><strong>Conflicts:</strong> ${claimsData.conflicts.length}</p>` : ''}
+            <a href="/person/${nodeId}" target="_blank">View Full Details →</a>
+        `;
+
+        document.getElementById('node-detail').style.display = 'block';
+    } catch (error) {
+        console.error('Failed to load node details:', error);
+    }
+}
+
+// Auto-load if root person ID is provided
+window.onload = function() {
+    const personId = document.getElementById('person-id-input').value;
+    if (personId) {
+        initCytoscape();
+        loadGraph();
+    }
+};
+</script>
+{% endblock %}

@@ -1,0 +1,1 @@
+"""LineageForge: Genealogical intelligence platform."""

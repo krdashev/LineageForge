@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.canonical_name or 'Person' }} - LineageForge{% endblock %}
+
+{% block content %}
+<div class="person-detail">
+    <h1>{{ person.canonical_name or 'Unknown Person' }}</h1>
+
+    <div class="person-metadata">
+        <p><strong>Person ID:</strong> {{ person.person_id }}</p>
+        <p><strong>Birth Year:</strong> {{ person.canonical_birth_year or 'Unknown' }}</p>
+        <p><strong>Death Year:</strong> {{ person.canonical_death_year or 'Unknown' }}</p>
+        <p><strong>Active:</strong> {{ 'Yes' if person.is_active else 'No (Merged)' }}</p>
+    </div>
+
+    {% if conflicts %}
+    <div class="conflicts-section">
+        <h2>⚠️ Conflicting Claims</h2>
+        {% for conflict in conflicts %}
+        <div class="conflict-item">
+            <strong>{{ conflict.predicate }}:</strong>
+            <ul>
+                {% for value in conflict.values %}
+                <li>{{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <section class="claims-section">
+        <h2>Claims ({{ grouped_claims|length }} predicates)</h2>
+
+        {% for predicate, claims in grouped_claims.items() %}
+        <div class="claim-group">
+            <h3>{{ predicate }}</h3>
+
+            {% for claim in claims %}
+            <div class="claim-item">
+                <div class="claim-content">
+                    <span class="claim-value">
+                        {% if claim.object_value %}
+                            {{ claim.object_value }}
+                        {% elif claim.object_id %}
+                            <a href="/person/{{ claim.object_id }}">View Person</a>
+                        {% endif %}
+                    </span>
+
+                    <div class="claim-meta">
+                        <span class="confidence confidence-{{ claim.confidence_level.value }}">
+                            {{ claim.confidence_level.value }} ({{ "%.2f"|format(claim.confidence) }})
+                        </span>
+
+                        {% if claim.time_start %}
+                        <span class="time">{{ claim.time_start.strftime('%Y-%m-%d') }}</span>
+                        {% endif %}
+
+                        <span class="source">Source: {{ claim.source_id }}</span>
+                    </div>
+
+                    {% if claim.rationale %}
+                    <p class="rationale">{{ claim.rationale }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </section>
+
+    <div class="actions">
+        <a href="/tree?person_id={{ person.person_id }}" class="button">View in Tree</a>
+    </div>
+</div>
+{% endblock %}

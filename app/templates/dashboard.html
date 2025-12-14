@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - LineageForge{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>Dashboard</h1>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Persons</h3>
+            <p class="stat-number">{{ person_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Claims</h3>
+            <p class="stat-number">{{ claim_count }}</p>
+        </div>
+    </div>
+
+    <section class="section">
+        <h2>Import Data</h2>
+        <form
+            hx-post="/api/import/gedcom"
+            hx-encoding="multipart/form-data"
+            hx-target="#import-result"
+            hx-indicator="#import-spinner"
+        >
+            <input type="file" name="file" accept=".ged,.gedcom" required>
+            <button type="submit">Import GEDCOM</button>
+            <span id="import-spinner" class="htmx-indicator">Processing...</span>
+        </form>
+        <div id="import-result"></div>
+    </section>
+
+    <section class="section">
+        <h2>Recent Jobs</h2>
+        <table class="runs-table">
+            <thead>
+                <tr>
+                    <th>Job Type</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Completed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in recent_runs %}
+                <tr>
+                    <td>{{ run.job_type.value }}</td>
+                    <td><span class="status-{{ run.status.value }}">{{ run.status.value }}</span></td>
+                    <td>{{ run.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ run.completed_at.strftime('%Y-%m-%d %H:%M') if run.completed_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="/runs">View all jobs →</a>
+    </section>
+</div>
+{% endblock %}
