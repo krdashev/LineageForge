@@ -25,6 +25,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Copy start script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Create necessary directories
 RUN mkdir -p /app/data /app/reports
 
@@ -32,5 +36,4 @@ RUN mkdir -p /app/data /app/reports
 EXPOSE 8000
 
 # Default command (web service)
-# Use shell form to allow environment variable expansion
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["/bin/bash", "/app/start.sh"]
